@@ -1,27 +1,10 @@
-[assembly: System.Runtime.CompilerServices.IgnoresAccessChecksTo("Azure.Identity")]
+namespace RoleExample.Web;
 
-namespace System.Runtime.CompilerServices
+public class WeatherApiClient(HttpClient httpClient)
 {
-    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    public class IgnoresAccessChecksToAttribute : Attribute
+    public async Task<int> GetCurrentCountAsync(CancellationToken cancellationToken = default)
     {
-        public IgnoresAccessChecksToAttribute(string assemblyName)
-        {
-            AssemblyName = assemblyName;
-        }
-
-        public string AssemblyName { get; }
-    }
-}
-namespace RoleExample.Web
-{
-
-    public class WeatherApiClient(HttpClient httpClient)
-    {
-        public async Task<int> GetCurrentCountAsync(CancellationToken cancellationToken = default)
-        {
-            var countString = await httpClient.GetStringAsync("/getcount", cancellationToken);
-            return int.Parse(countString);
-        }
+        var countString = await httpClient.GetStringAsync("/getcount", cancellationToken);
+        return int.Parse(countString);
     }
 }
