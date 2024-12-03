@@ -1,0 +1,23 @@
+﻿@page "/weather"
+@attribute [StreamRendering(true)]
+
+@inject WeatherApiClient WeatherApi
+
+<PageTitle>Weather</PageTitle>
+
+<h1>Weather</h1>
+
+<p>This component demonstrates showing data loaded from a backend API service.</p>
+
+<div>
+    @currentCount
+</div>
+
+@code {
+    private int currentCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentCount = await WeatherApi.GetCurrentCountAsync();
+    }
+}

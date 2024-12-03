@@ -1,0 +1,66 @@
+﻿@page "/counter"
+@using Azure
+@using Azure.Storage.Blobs
+@using Azure.Storage.Blobs.Specialized
+@using System.IO
+@rendermode InteractiveServer
+@inject BlobServiceClient BlobService
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCountAsync">Click me</button>
+
+@code {
+    private int currentCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetCurrentCount();
+        await base.OnInitializedAsync();
+    }
+
+    private async Task IncrementCountAsync()
+    {
+        currentCount++;
+
+        var blobClient = GetCounterBlobClientAsync();
+
+        using (var stream = new MemoryStream())
+        using (var writer = new StreamWriter(stream))
+        {
+            writer.Write(currentCount.ToString());
+            writer.Flush();
+            stream.Position = 0;
+            await blobClient.UploadAsync(stream, overwrite: true);
+        }
+    }
+
+    private async Task GetCurrentCount()
+    {
+        var blobClient = GetCounterBlobClientAsync();
+
+        try
+        {
+            var contentResult = await blobClient.DownloadContentAsync();
+            currentCount = contentResult.Value.Content.ToObjectFromJson<int>();
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            await blobClient.GetParentBlobContainerClient().CreateIfNotExistsAsync();
+
+            currentCount = 0;
+        }
+    }
+
+    private BlobClient GetCounterBlobClientAsync()
+    {
+        var container = BlobService.GetBlobContainerClient("role-example");
+        //await container.CreateIfNotExistsAsync();
+
+        return container.GetBlobClient("counter");
+    }
+}
