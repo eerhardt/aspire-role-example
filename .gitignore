@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# azd files
+/RoleExample.AppHost/azure.yaml
+/RoleExample.AppHost/next-steps.md
+/RoleExample.AppHost/.gitignore

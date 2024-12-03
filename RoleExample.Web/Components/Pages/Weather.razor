@@ -10,11 +10,18 @@
 <p>This component demonstrates showing data loaded from a backend API service.</p>
 
 <div>
-    @currentCount
+    @if (@currentCount >= 0)
+    {
+        <p>Current count: @currentCount</p>
+    }
+    else
+    {
+        <p><em>Loading...</em></p>
+    }
 </div>
 
 @code {
-    private int currentCount;
+    private int currentCount = -1;
 
     protected override async Task OnInitializedAsync()
     {
