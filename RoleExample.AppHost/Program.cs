@@ -8,30 +8,30 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var roles = builder.AddAzureInfrastructure("ids", infra =>
+var ids = builder.AddAzureInfrastructure("ids", infra =>
 {
     var apiServiceId = new UserAssignedIdentity("apiServiceId");
     infra.Add(apiServiceId);
 
-    var frontendServiceId = new UserAssignedIdentity("frontendServiceId");
-    infra.Add(frontendServiceId);
+    var webId = new UserAssignedIdentity("webId");
+    infra.Add(webId);
 
     infra.Add(new ProvisioningOutput("apiServiceId", typeof(string)) { Value = apiServiceId.Id });
     infra.Add(new ProvisioningOutput("apiServicePrincipalId", typeof(string)) { Value = apiServiceId.PrincipalId });
     infra.Add(new ProvisioningOutput("apiServiceClientId", typeof(string)) { Value = apiServiceId.ClientId });
 
-    infra.Add(new ProvisioningOutput("frontendServiceId", typeof(string)) { Value = frontendServiceId.Id });
-    infra.Add(new ProvisioningOutput("frontendServicePrincipalId", typeof(string)) { Value = frontendServiceId.PrincipalId });
-    infra.Add(new ProvisioningOutput("frontendServiceClientId", typeof(string)) { Value = frontendServiceId.ClientId });
+    infra.Add(new ProvisioningOutput("webId", typeof(string)) { Value = webId.Id });
+    infra.Add(new ProvisioningOutput("webPrincipalId", typeof(string)) { Value = webId.PrincipalId });
+    infra.Add(new ProvisioningOutput("webClientId", typeof(string)) { Value = webId.ClientId });
 });
 
-var apiServiceId = new BicepOutputReference("apiServiceId", roles.Resource);
-var apiServicePrincipalId = new BicepOutputReference("apiServicePrincipalId", roles.Resource);
-var apiServiceClientId = new BicepOutputReference("apiServiceClientId", roles.Resource);
+var apiServiceId = new BicepOutputReference("apiServiceId", ids.Resource);
+var apiServicePrincipalId = new BicepOutputReference("apiServicePrincipalId", ids.Resource);
+var apiServiceClientId = new BicepOutputReference("apiServiceClientId", ids.Resource);
 
-var frontendServiceId = new BicepOutputReference("frontendServiceId", roles.Resource);
-var frontendServicePrincipalId = new BicepOutputReference("frontendServicePrincipalId", roles.Resource);
-var frontendServiceClientId = new BicepOutputReference("frontendServiceClientId", roles.Resource);
+var webId = new BicepOutputReference("webId", ids.Resource);
+var webPrincipalId = new BicepOutputReference("webPrincipalId", ids.Resource);
+var webClientId = new BicepOutputReference("webClientId", ids.Resource);
 
 var blobs = builder.AddAzureStorage("storage")
     .RunAsEmulator(e => e.WithLifetime(ContainerLifetime.Persistent))
@@ -45,7 +45,7 @@ var blobs = builder.AddAzureStorage("storage")
         }
 
         var storageAccount = infra.GetProvisionableResources().OfType<StorageAccount>().Single();
-        infra.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, frontendServicePrincipalId.AsProvisioningParameter(infra)));
+        infra.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, webPrincipalId.AsProvisioningParameter(infra)));
         infra.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataReader, RoleManagementPrincipalType.ServicePrincipal, apiServicePrincipalId.AsProvisioningParameter(infra)));
     })
     .AddBlobs("blobs");
@@ -63,16 +63,16 @@ var apiService = builder.AddProject<Projects.RoleExample_ApiService>("apiservice
         clientIdEnv.Value!.Value = apiServiceClientId.AsProvisioningParameter(infra);
     });
 
-builder.AddProject<Projects.RoleExample_Web>("webfrontend")
+builder.AddProject<Projects.RoleExample_Web>("web")
     .PublishAsAzureContainerApp((infra, app) =>
     {
-        var frontendServiceIdParam = frontendServiceId.AsProvisioningParameter(infra);
-        var id = BicepFunction.Interpolate($"{frontendServiceIdParam}").Compile().ToString();
+        var webIdParam = webId.AsProvisioningParameter(infra);
+        var id = BicepFunction.Interpolate($"{webIdParam}").Compile().ToString();
 
         app.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
         var clientIdEnv = app.Template.Containers[0].Value!.Env.Single(e => e.Value!.Name.Value == "AZURE_CLIENT_ID");
-        clientIdEnv.Value!.Value = frontendServiceClientId.AsProvisioningParameter(infra);
+        clientIdEnv.Value!.Value = webClientId.AsProvisioningParameter(infra);
     })
     .WithExternalHttpEndpoints()
     .WithReference(blobs)
